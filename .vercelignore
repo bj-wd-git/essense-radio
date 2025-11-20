@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.env.local
+*.log
+coverage
+backend
+mobile
+docker
+*.md
+!readme.md
+
