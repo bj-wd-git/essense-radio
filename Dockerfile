@@ -40,14 +40,15 @@ COPY --from=builder /app/backend/dist ./dist
 # Expose port
 EXPOSE 3000
 
-# Environment variables (set these when running)
+# Environment variables (override these when running)
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV DB_HOST=localhost
-ENV DB_PORT=3306
-ENV DB_USERNAME=root
-ENV DB_PASSWORD=password
-ENV DB_DATABASE=essence_radio
+# Database connection - MUST be set when running container
+# ENV DB_HOST=your-database-host
+# ENV DB_PORT=3306
+# ENV DB_USERNAME=your-username
+# ENV DB_PASSWORD=your-password
+# ENV DB_DATABASE=essence_radio
 ENV JWT_SECRET=your-secret-key-change-in-production
 
 # Health check - use curl instead of wget, and check if process is running

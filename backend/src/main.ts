@@ -6,7 +6,15 @@ async function bootstrap() {
   try {
     console.log('🚀 Starting Essence Radio Backend...');
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️  Database: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}`);
+    const dbHost = process.env.DB_HOST || '127.0.0.1';
+    const dbPort = process.env.DB_PORT || '3306';
+    console.log(`🗄️  Database: ${dbHost}:${dbPort}`);
+    console.log(`📝 Database: ${process.env.DB_DATABASE || 'essence_radio'}`);
+    
+    if (!process.env.DB_HOST) {
+      console.warn('⚠️  WARNING: DB_HOST not set, using default 127.0.0.1');
+      console.warn('⚠️  Please set DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, and DB_DATABASE environment variables');
+    }
     
     const app = await NestFactory.create(AppModule);
     

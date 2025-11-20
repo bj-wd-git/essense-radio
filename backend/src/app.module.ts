@@ -19,8 +19,8 @@ import { ChatMessage } from './chat/entities/chat-message.entity';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 3306,
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: parseInt(process.env.DB_PORT || '3306'),
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || 'password',
       database: process.env.DB_DATABASE || 'essence_radio',
@@ -31,6 +31,9 @@ import { ChatMessage } from './chat/entities/chat-message.entity';
       retryDelay: 5000,
       autoLoadEntities: true,
       connectTimeout: 60000,
+      extra: {
+        connectTimeout: 60000,
+      },
     }),
     AuthModule,
     StationsModule,
