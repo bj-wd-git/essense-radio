@@ -16,6 +16,6 @@
     "build:all": "npm run build:backend && npm run build:web",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f",
+    "docker:logs": "docker compose logs -f"
   }
 }
