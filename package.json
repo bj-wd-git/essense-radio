@@ -17,8 +17,5 @@
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "docker:prod": "docker compose -f docker-compose.prod.yml up --build",
-    "deploy:railway": "bash scripts/deploy-railway.sh",
-    "setup:prod": "bash scripts/setup-production.sh"
   }
 }

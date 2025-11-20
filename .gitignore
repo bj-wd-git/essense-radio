@@ -42,3 +42,5 @@ coverage/
 # Misc
 *.pem
 *.key
+*.zip
+_backup_files.txt
