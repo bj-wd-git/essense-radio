@@ -1,5 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -17,7 +19,7 @@ async function bootstrap() {
     }
     
     console.log('📦 Creating NestJS application...');
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       logger: ['error', 'warn', 'log'],
     });
     
@@ -28,6 +30,13 @@ async function bootstrap() {
         transform: true,
       })
     );
+    
+    // Serve static files from public directory (frontend)
+    const publicPath = join(__dirname, '..', 'public');
+    console.log(`📁 Serving static files from: ${publicPath}`);
+    app.useStaticAssets(publicPath, {
+      index: 'index.html',
+    });
     
     // Allow all origins in development, restrict in production
     const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -41,11 +50,15 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization'],
     });
 
-    const port = process.env.PORT || 3000;
+    // Set global prefix for API routes
+    app.setGlobalPrefix('api');
+
+    const port = process.env.PORT || 80;
     console.log(`🌐 Starting HTTP server on port ${port}...`);
     await app.listen(port, '0.0.0.0');
     console.log(`✅ Backend server running on http://0.0.0.0:${port}`);
-    console.log(`📊 Health check available at http://localhost:${port}/health`);
+    console.log(`📊 Health check available at http://localhost:${port}/api/health`);
+    console.log(`🌍 Frontend available at http://localhost:${port}/`);
     console.log(`🎉 Application started successfully!`);
   } catch (error) {
     console.error('❌ Failed to start application:');
@@ -74,4 +87,3 @@ process.on('uncaughtException', (error) => {
 });
 
 bootstrap();
-
