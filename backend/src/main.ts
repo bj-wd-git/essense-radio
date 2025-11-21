@@ -6,9 +6,20 @@ async function bootstrap() {
   try {
     console.log('🚀 Starting Essence Radio Backend...');
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️  Database: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}`);
+    const dbHost = process.env.DB_HOST || '127.0.0.1';
+    const dbPort = process.env.DB_PORT || '3306';
+    const dbName = process.env.DB_DATABASE || 'essence_radio';
+    console.log(`🗄️  Database: ${dbHost}:${dbPort}/${dbName}`);
     
-    const app = await NestFactory.create(AppModule);
+    if (!process.env.DB_HOST) {
+      console.warn('⚠️  WARNING: DB_HOST not set, using default 127.0.0.1');
+      console.warn('⚠️  Please set DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, and DB_DATABASE environment variables');
+    }
+    
+    console.log('📦 Creating NestJS application...');
+    const app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log'],
+    });
     
     app.useGlobalPipes(
       new ValidationPipe({
@@ -31,11 +42,23 @@ async function bootstrap() {
     });
 
     const port = process.env.PORT || 3000;
+    console.log(`🌐 Starting HTTP server on port ${port}...`);
     await app.listen(port, '0.0.0.0');
     console.log(`✅ Backend server running on http://0.0.0.0:${port}`);
     console.log(`📊 Health check available at http://localhost:${port}/health`);
+    console.log(`🎉 Application started successfully!`);
   } catch (error) {
-    console.error('❌ Failed to start application:', error);
+    console.error('❌ Failed to start application:');
+    console.error('Error details:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    console.error('\n💡 Troubleshooting:');
+    console.error('  1. Check database connection settings (DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE)');
+    console.error('  2. Verify database is running and accessible');
+    console.error('  3. Check network connectivity');
+    console.error('  4. Review logs above for specific error details');
     process.exit(1);
   }
 }
