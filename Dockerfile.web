@@ -69,7 +69,50 @@ RUN echo "=== Checking dist directory ===" && \
     echo "File count: $(find /var/www/html -type f | wc -l) files"
 
 # Create Nginx configuration with API proxy for CORS handling
-RUN printf 'server {\n    listen 80;\n    server_name _;\n    root /var/www/html;\n    index index.html;\n\n    # Serve static files\n    location / {\n        try_files $uri $uri/ /index.html;\n    }\n\n    # API proxy with CORS handling\n    location /api/ {\n        # Handle CORS preflight requests\n        if ($request_method = OPTIONS) {\n            add_header Access-Control-Allow-Origin * always;\n            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;\n            add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, Accept" always;\n            add_header Access-Control-Allow-Credentials true always;\n            add_header Access-Control-Max-Age 1728000 always;\n            add_header Content-Type "text/plain charset=UTF-8" always;\n            add_header Content-Length 0 always;\n            return 204;\n        }\n        \n        # Proxy to external API\n        proxy_pass http://ertapi.194.164.149.203.sslip.io/api/;\n        proxy_http_version 1.1;\n        \n        # WebSocket support\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection "upgrade";\n        \n        # Standard proxy headers\n        proxy_set_header Host ertapi.194.164.149.203.sslip.io;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header X-Forwarded-Host $host;\n        \n        # CORS headers for all responses\n        add_header Access-Control-Allow-Origin * always;\n        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;\n        add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, Accept" always;\n        add_header Access-Control-Allow-Credentials true always;\n        \n        # Timeouts\n        proxy_connect_timeout 60s;\n        proxy_send_timeout 60s;\n        proxy_read_timeout 60s;\n        \n        # Buffer settings - keep buffering on for POST requests to work properly\n        proxy_buffering on;\n        proxy_redirect off;\n        \n        # Don't intercept errors - let API errors pass through\n        proxy_intercept_errors off;\n    }\n\n    # Cache static assets\n    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n        expires 1y;\n        add_header Cache-Control "public, immutable";\n    }\n}\n' > /etc/nginx/sites-available/default
+RUN echo 'server {' > /etc/nginx/sites-available/default && \
+    echo '    listen 80;' >> /etc/nginx/sites-available/default && \
+    echo '    server_name _;' >> /etc/nginx/sites-available/default && \
+    echo '    root /var/www/html;' >> /etc/nginx/sites-available/default && \
+    echo '    index index.html;' >> /etc/nginx/sites-available/default && \
+    echo '    location / {' >> /etc/nginx/sites-available/default && \
+    echo '        try_files $uri $uri/ /index.html;' >> /etc/nginx/sites-available/default && \
+    echo '    }' >> /etc/nginx/sites-available/default && \
+    echo '    location /api/ {' >> /etc/nginx/sites-available/default && \
+    echo '        if ($request_method = OPTIONS) {' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Access-Control-Allow-Origin * always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, Accept" always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Access-Control-Allow-Credentials true always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Access-Control-Max-Age 1728000 always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Content-Type "text/plain charset=UTF-8" always;' >> /etc/nginx/sites-available/default && \
+    echo '            add_header Content-Length 0 always;' >> /etc/nginx/sites-available/default && \
+    echo '            return 204;' >> /etc/nginx/sites-available/default && \
+    echo '        }' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_pass http://ertapi.194.164.149.203.sslip.io/api/;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_http_version 1.1;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header Upgrade $http_upgrade;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header Connection "upgrade";' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header Host ertapi.194.164.149.203.sslip.io;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_set_header X-Forwarded-Host $host;' >> /etc/nginx/sites-available/default && \
+    echo '        add_header Access-Control-Allow-Origin * always;' >> /etc/nginx/sites-available/default && \
+    echo '        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;' >> /etc/nginx/sites-available/default && \
+    echo '        add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, Accept" always;' >> /etc/nginx/sites-available/default && \
+    echo '        add_header Access-Control-Allow-Credentials true always;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_connect_timeout 60s;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_send_timeout 60s;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_read_timeout 60s;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_buffering on;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_redirect off;' >> /etc/nginx/sites-available/default && \
+    echo '        proxy_intercept_errors off;' >> /etc/nginx/sites-available/default && \
+    echo '    }' >> /etc/nginx/sites-available/default && \
+    echo '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {' >> /etc/nginx/sites-available/default && \
+    echo '        expires 1y;' >> /etc/nginx/sites-available/default && \
+    echo '        add_header Cache-Control "public, immutable";' >> /etc/nginx/sites-available/default && \
+    echo '    }' >> /etc/nginx/sites-available/default && \
+    echo '}' >> /etc/nginx/sites-available/default
 
 # Remove default Nginx site and enable our config
 RUN rm -f /etc/nginx/sites-enabled/default && \
