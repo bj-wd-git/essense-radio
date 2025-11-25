@@ -1,0 +1,105 @@
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+###########################################
+# 1. Install Dependencies
+###########################################
+RUN apt-get update && apt-get install -y \
+    mysql-server \
+    git \
+    curl \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    build-essential \
+    python3 \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20.x LTS from NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js and npm versions
+RUN node --version && npm --version
+
+# Install Nest CLI globally
+RUN npm install -g @nestjs/cli
+
+###########################################
+# 2. MySQL Database Setup
+###########################################
+ENV DB_NAME=essence_radio
+ENV DB_USER=essence_user
+ENV DB_PASS=essence_pass
+
+# Configure MySQL to accept connections from anywhere
+RUN sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Initialize MySQL and create database/user
+RUN service mysql start && \
+    sleep 5 && \
+    mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};" && \
+    mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}';" && \
+    mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'%';" && \
+    mysql -e "FLUSH PRIVILEGES;" && \
+    service mysql stop
+
+###########################################
+# 3. Clone Git Repository
+###########################################
+WORKDIR /opt
+
+# Build arguments for git repository
+ARG GIT_REPO=https://github.com/bj-wd-git/essense-radio
+ARG GIT_BRANCH=prod
+
+# Clone the repository
+RUN git clone --depth 1 --branch ${GIT_BRANCH} ${GIT_REPO} app || \
+    git clone --depth 1 ${GIT_REPO} app
+
+###########################################
+# 4. Install and Build NestJS Backend
+###########################################
+WORKDIR /opt/app/backend
+
+# Install backend dependencies
+RUN npm ci --production=false || npm install --production=false
+
+# Build NestJS backend
+RUN npm run build
+
+###########################################
+# 5. Configure Supervisor for Process Management
+###########################################
+# Create log directory
+RUN mkdir -p /var/log/supervisor
+
+# Create main supervisor config file
+RUN printf '[unix_http_server]\nfile=/var/run/supervisor.sock\nchmod=0700\n\n[supervisord]\nnodaemon=true\nlogfile=/var/log/supervisor/supervisord.log\npidfile=/var/run/supervisord.pid\nchildlogdir=/var/log/supervisor\n\n[rpcinterface:supervisor]\nsupervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface\n\n[supervisorctl]\nserverurl=unix:///var/run/supervisor.sock\n\n[include]\nfiles = /etc/supervisor/conf.d/*.conf\n' > /etc/supervisor/supervisord.conf
+
+# Create program configs
+RUN printf '[program:mysql]\ncommand=/usr/bin/mysqld_safe\nautostart=true\nautorestart=true\nstderr_logfile=/var/log/supervisor/mysql.err.log\nstdout_logfile=/var/log/supervisor/mysql.out.log\nuser=mysql\n' > /etc/supervisor/conf.d/mysql.conf
+
+RUN printf '[program:nestjs]\ncommand=/usr/bin/node /opt/app/backend/dist/main.js\ndirectory=/opt/app/backend\nautostart=true\nautorestart=true\nstderr_logfile=/var/log/supervisor/nestjs.err.log\nstdout_logfile=/var/log/supervisor/nestjs.out.log\nenvironment=NODE_ENV="production",PORT="80",DB_HOST="127.0.0.1",DB_PORT="3306",DB_USERNAME="essence_user",DB_PASSWORD="essence_pass",DB_DATABASE="essence_radio"\npriority=10\n' > /etc/supervisor/conf.d/nestjs.conf
+
+###########################################
+# 6. Expose Ports
+###########################################
+EXPOSE 80
+EXPOSE 3306
+
+###########################################
+# 7. Create Startup Script
+###########################################
+RUN printf '#!/bin/bash\nset -e\necho "=== API Startup Verification ==="\n\necho "1. Checking backend build..."\nif [ ! -f /opt/app/backend/dist/main.js ]; then\n    echo "ERROR: Backend build not found!"\n    exit 1\nfi\necho "✓ Backend build exists"\n\necho "=== All checks passed ==="\necho "Starting services..."\necho "NestJS API will be available at: http://localhost:80/api/"\necho "MySQL will be available on port: 3306"\n\nexec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf\n' > /usr/local/bin/start.sh && \
+    chmod +x /usr/local/bin/start.sh
+
+###########################################
+# 8. Start Services with Supervisor
+###########################################
+CMD ["/usr/local/bin/start.sh"]
+

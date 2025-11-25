@@ -1,32 +1,38 @@
 version: '3.8'
 
 services:
-  app:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        GIT_REPO: ${GIT_REPO:-https://github.com/your/repo.git}
-        GIT_BRANCH: ${GIT_BRANCH:-main}
+      dockerfile: Dockerfile.api
+    container_name: essence-api
     ports:
-      - "80:80"
-      - "3000:3000"
-      - "3306:3306"
+      - "3000:80"      # API port
+      - "3306:3306"    # MySQL port
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=80
       - DB_HOST=127.0.0.1
       - DB_PORT=3306
       - DB_USERNAME=essence_user
       - DB_PASSWORD=essence_pass
       - DB_DATABASE=essence_radio
-      - JWT_SECRET=your_jwt_secret_key_change_in_production
-      - ALLOWED_ORIGINS=http://localhost,http://localhost:80
-    volumes:
-      # Persist MySQL data
-      - mysql_data:/var/lib/mysql
+    networks:
+      - essence-network
     restart: unless-stopped
 
-volumes:
-  mysql_data:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: essence-web
+    ports:
+      - "80:80"        # Frontend port
+    # API URL is hardcoded to: http://ertapi.194.164.149.203.sslip.io/api/
+    networks:
+      - essence-network
+    restart: unless-stopped
 
+networks:
+  essence-network:
+    driver: bridge

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,17 +16,42 @@ export class AuthService {
   ) {}
 
   async register(createUserDto: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    
-    const user = this.userRepository.create({
-      ...createUserDto,
-      password: hashedPassword,
-      displayName: createUserDto.displayName || createUserDto.username,
+    // Check if username already exists
+    const existingUserByUsername = await this.userRepository.findOne({
+      where: { username: createUserDto.username },
     });
+    if (existingUserByUsername) {
+      throw new ConflictException('Username already exists');
+    }
 
-    const savedUser = await this.userRepository.save(user);
-    const { password, ...result } = savedUser;
-    return result;
+    // Check if email already exists
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
+    if (existingUserByEmail) {
+      throw new ConflictException('Email already exists');
+    }
+
+    try {
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      
+      const user = this.userRepository.create({
+        ...createUserDto,
+        password: hashedPassword,
+        displayName: createUserDto.displayName || createUserDto.username,
+      });
+
+      const savedUser = await this.userRepository.save(user);
+      const { password, ...result } = savedUser;
+      return result;
+    } catch (error) {
+      // Handle any other database errors
+      if (error.code === 'ER_DUP_ENTRY') {
+        throw new ConflictException('Username or email already exists');
+      }
+      console.error('Registration error:', error);
+      throw new InternalServerErrorException('Failed to register user');
+    }
   }
 
   async validateUser(username: string, password: string): Promise<any> {
