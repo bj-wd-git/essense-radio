@@ -55,7 +55,7 @@ async function bootstrap() {
 
     const port = process.env.PORT || 80;
     console.log(`🌐 Starting HTTP server on port ${port}...`);
-    await app.listen(port, '0.0.0.0');
+    await app.listen(85, '0.0.0.0');
     console.log(`✅ Backend server running on http://0.0.0.0:${port}`);
     console.log(`📊 Health check available at http://localhost:${port}/api/health`);
     console.log(`🌍 Frontend available at http://localhost:${port}/`);
