@@ -53,7 +53,8 @@ async function bootstrap() {
     // Set global prefix for API routes
     app.setGlobalPrefix('api');
 
-    const port = 3000 || process.env.PORT || 80;
+    //const port = 3000 || process.env.PORT || 80;
+     const port = 3000;
     console.log(`🌐 Starting HTTP server on port ${port}...`);
     await app.listen(port, '0.0.0.0');
     console.log(`✅ Backend server running on http://0.0.0.0:${port}`);
